@@ -81,7 +81,7 @@ export const writePrescription = async (req, res) => {
         if (isAiEnabled && process.env.GEMINI_API_KEY) {
             try {
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
                 const prompt = `You are a friendly medical explainer. A doctor diagnosed a patient with "${diagnosis}" and prescribed these medications: ${medications?.map(m => `${m.name} ${m.dosage} ${m.frequency} for ${m.duration}`).join(", ")}. 
                 Write a simple, reassuring explanation in 2-3 sentences that a non-medical patient can easily understand. Include what the condition is and how the medicines help.`;
                 const result = await model.generateContent(prompt);
@@ -163,7 +163,7 @@ const buildFallbackDiagnosis = (symptoms) => ({
 // ── Gemini call with retry + JSON extraction ──────────────────────────────────
 const callGeminiDiagnosis = async (symptoms, patientAge, patientGender, medicalHistory) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `You are an AI medical assistant helping a qualified doctor (not a patient).
 Patient info: Age: ${patientAge || "unknown"}, Gender: ${patientGender || "unknown"}.
@@ -217,19 +217,23 @@ export const aiDiagnosisAssist = async (req, res) => {
             console.error("[AI] Gemini diagnosis failed:", aiErr.message);
 
             // Classify the error for a meaningful warning message
+            // Check numeric HTTP status FIRST (before scanning message text),
+            // because the SDK always wraps errors as "Error fetching from ..."
+            // which would otherwise falsely match the network-error branch.
             const errMsg = aiErr.message?.toLowerCase() ?? "";
-            const errStatus = aiErr.status ?? aiErr.response?.status;
+            const errStatus = aiErr.status ?? aiErr.httpStatus ?? aiErr.response?.status;
             let warning = "AI analysis encountered an error. Showing general clinical guidance.";
-            if (errStatus === 429 || errMsg.includes("quota") || errMsg.includes("resource_exhausted")) {
-                warning = "AI quota exceeded. Showing general clinical guidance.";
+            if (errStatus === 429 || errMsg.includes("quota") || errMsg.includes("resource_exhausted") || errMsg.includes("too many requests")) {
+                warning = "AI quota exceeded. Please try again in a few minutes.";
             } else if (
                 errStatus === 400 || errStatus === 403 ||
                 errMsg.includes("api_key") || errMsg.includes("api key") ||
-                errMsg.includes("invalid") || errMsg.includes("permission") ||
-                errMsg.includes("unauthorized")
+                errMsg.includes("permission") || errMsg.includes("unauthorized")
             ) {
                 warning = "AI API key is invalid or unauthorised. Set a valid GEMINI_API_KEY in the backend .env file.";
-            } else if (errMsg.includes("fetch") || errMsg.includes("enotfound") || errMsg.includes("network") || aiErr.code === "ENOTFOUND") {
+            } else if (errStatus === 404 || errMsg.includes("not found") || errMsg.includes("model")) {
+                warning = "AI model unavailable. Please contact support.";
+            } else if (aiErr.code === "ENOTFOUND" || errMsg.includes("enotfound") || errMsg.includes("network")) {
                 warning = "Backend cannot reach the Gemini API. Check server internet access and your GEMINI_API_KEY.";
             }
 
