@@ -16,10 +16,11 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, Postman, etc.)
+        // Allow requests with no origin (mobile apps, Postman, curl, etc.)
         if (!origin) return callback(null, true);
         if (allowedOrigins.some(o => origin.startsWith(o))) return callback(null, true);
-        callback(new Error(`CORS: origin ${origin} not allowed`));
+        // Reject silently — don't pass an Error or Express will 500
+        callback(null, false);
     },
     credentials: true,
 }));
