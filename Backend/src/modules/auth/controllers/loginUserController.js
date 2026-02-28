@@ -45,10 +45,13 @@ const loginUserController = async (req, res) => {
 
 
 
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('token', token, {
             httpOnly: true,
             signed: true,
             maxAge: 1000 * 60 * 60 * 24,
+            secure: isProduction,
+            sameSite: isProduction ? 'None' : 'Lax',
         });
 
         const { password: _, ...safeUser } = user.toObject ? user.toObject() : user;

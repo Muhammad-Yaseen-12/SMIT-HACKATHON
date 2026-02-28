@@ -199,8 +199,9 @@ export const aiDiagnosisAssist = async (req, res) => {
             return res.status(400).json({ success: false, message: "Symptoms are required" });
         }
 
-        // ── No API key configured: return graceful fallback ───────────────────
-        if (!process.env.GEMINI_API_KEY) {
+        // ── No API key configured (missing or still the default placeholder) ──
+        const PLACEHOLDER = "your_gemini_api_key_here";
+        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === PLACEHOLDER) {
             return res.status(200).json({
                 success: true,
                 data: buildFallbackDiagnosis(symptoms),
@@ -216,13 +217,20 @@ export const aiDiagnosisAssist = async (req, res) => {
             console.error("[AI] Gemini diagnosis failed:", aiErr.message);
 
             // Classify the error for a meaningful warning message
+            const errMsg = aiErr.message?.toLowerCase() ?? "";
+            const errStatus = aiErr.status ?? aiErr.response?.status;
             let warning = "AI analysis encountered an error. Showing general clinical guidance.";
-            if (aiErr.message?.includes("quota") || aiErr.status === 429) {
+            if (errStatus === 429 || errMsg.includes("quota") || errMsg.includes("resource_exhausted")) {
                 warning = "AI quota exceeded. Showing general clinical guidance.";
-            } else if (aiErr.message?.includes("API_KEY") || aiErr.status === 400) {
-                warning = "AI API key is invalid. Showing general clinical guidance.";
-            } else if (aiErr.message?.includes("fetch") || aiErr.code === "ENOTFOUND") {
-                warning = "AI service unreachable. Showing general clinical guidance.";
+            } else if (
+                errStatus === 400 || errStatus === 403 ||
+                errMsg.includes("api_key") || errMsg.includes("api key") ||
+                errMsg.includes("invalid") || errMsg.includes("permission") ||
+                errMsg.includes("unauthorized")
+            ) {
+                warning = "AI API key is invalid or unauthorised. Set a valid GEMINI_API_KEY in the backend .env file.";
+            } else if (errMsg.includes("fetch") || errMsg.includes("enotfound") || errMsg.includes("network") || aiErr.code === "ENOTFOUND") {
+                warning = "Backend cannot reach the Gemini API. Check server internet access and your GEMINI_API_KEY.";
             }
 
             return res.status(200).json({

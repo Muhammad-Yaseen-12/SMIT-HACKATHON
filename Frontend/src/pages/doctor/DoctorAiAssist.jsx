@@ -57,7 +57,7 @@ const DoctorAiAssist = () => {
 
     return (
         <div className="max-w-4xl space-y-6">
-            <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
                 <div className="flex items-center gap-3 mb-2">
                     <Brain size={28} />
                     <h2 className="text-xl font-bold">AI Diagnosis Assistant</h2>
@@ -119,7 +119,7 @@ const DoctorAiAssist = () => {
                 </div>
 
                 <button onClick={handleAnalyze} disabled={loading || symptoms.length === 0}
-                    className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
                     {loading ? (
                         <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Analyzing with AI...</>
                     ) : (
@@ -131,7 +131,7 @@ const DoctorAiAssist = () => {
             {/* Fallback / degraded-mode warning banner */}
             {aiWarning && (
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-                    <WifiOff size={18} className="text-amber-600 mt-0.5 shrink-0" />
+                    <WifiOff size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
                     <div>
                         <p className="text-sm font-semibold text-amber-700">AI Service Unavailable</p>
                         <p className="text-xs text-amber-600 mt-0.5">{aiWarning} Results below are general clinical guidance and are not AI-generated.</p>
@@ -171,7 +171,7 @@ const DoctorAiAssist = () => {
                                 <ul className="space-y-2">
                                     {result.tests.map((t, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                                            <ChevronRight size={14} className="text-blue-500 mt-0.5 shrink-0" /> {t}
+                                            <ChevronRight size={14} className="text-blue-500 mt-0.5 flex-shrink-0" /> {t}
                                         </li>
                                     ))}
                                 </ul>
@@ -186,7 +186,7 @@ const DoctorAiAssist = () => {
                                 <ul className="space-y-2">
                                     {result.treatments.map((t, i) => (
                                         <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                                            <ChevronRight size={14} className="text-green-500 mt-0.5 shrink-0" /> {t}
+                                            <ChevronRight size={14} className="text-green-500 mt-0.5 flex-shrink-0" /> {t}
                                         </li>
                                     ))}
                                 </ul>
@@ -202,7 +202,7 @@ const DoctorAiAssist = () => {
                             <ul className="space-y-2">
                                 {result.redFlags.map((f, i) => (
                                     <li key={i} className="flex items-start gap-2 text-sm text-red-700">
-                                        <span className="mt-0.5 shrink-0">⚠</span> {f}
+                                        <span className="mt-0.5 flex-shrink-0">⚠</span> {f}
                                     </li>
                                 ))}
                             </ul>
