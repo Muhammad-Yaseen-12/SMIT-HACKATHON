@@ -12,6 +12,8 @@ const appointmentSchema = new mongoose.Schema(
             enum: ["pending", "confirmed", "completed", "cancelled"],
             default: "pending",
         },
+        cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Track who cancelled
+        cancelledByRole: { type: String, enum: ["patient", "doctor", "receptionist"] }, // Role of who cancelled
         type: {
             type: String,
             enum: ["general", "follow-up", "emergency", "consultation"],

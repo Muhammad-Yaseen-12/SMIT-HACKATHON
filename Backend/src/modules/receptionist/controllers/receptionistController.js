@@ -113,6 +113,33 @@ export const getDailySchedule = async (req, res) => {
     }
 };
 
+// Get all appointments (for receptionist)
+export const getAllAppointments = async (req, res) => {
+    try {
+        const { date, status, doctorId } = req.query;
+
+        const filter = {};
+        if (date) {
+            const targetDate = new Date(date);
+            const dayStart = new Date(targetDate.setHours(0, 0, 0, 0));
+            const dayEnd = new Date(targetDate.setHours(23, 59, 59, 999));
+            filter.appointmentDate = { $gte: dayStart, $lte: dayEnd };
+        }
+        if (status) filter.status = status;
+        if (doctorId) filter.doctor = doctorId;
+
+        const appointments = await AppointmentModel.find(filter)
+            .populate("patient", "name email phone gender bloodGroup")
+            .populate("doctor", "name specialization")
+            .populate("cancelledBy", "name role")
+            .sort({ appointmentDate: -1, timeSlot: 1 });
+
+        res.status(200).json({ success: true, data: appointments });
+    } catch (err) {
+        res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
+    }
+};
+
 // Update patient info
 export const updatePatientInfo = async (req, res) => {
     try {
@@ -136,9 +163,14 @@ export const cancelAppointment = async (req, res) => {
         const { id } = req.params;
         const appointment = await AppointmentModel.findByIdAndUpdate(
             id,
-            { status: "cancelled" },
+            {
+                status: "cancelled",
+                cancelledBy: req.user.id,
+                cancelledByRole: req.user.role
+            },
             { new: true }
-        ).populate("patient doctor");
+        ).populate("patient doctor")
+            .populate("cancelledBy", "name role");
         if (!appointment) return res.status(404).json({ success: false, message: "Appointment not found" });
         res.status(200).json({ success: true, message: "Appointment cancelled", data: appointment });
     } catch (err) {
@@ -169,6 +201,31 @@ export const getAvailableDoctors = async (req, res) => {
     try {
         const doctors = await UserModel.find({ role: "doctor", isActive: true }).select("-password");
         res.status(200).json({ success: true, data: doctors });
+    } catch (err) {
+        res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
+    }
+};
+
+// Get upcoming appointments (all future appointments)
+export const getUpcomingAppointments = async (req, res) => {
+    try {
+        const { doctorId } = req.query;
+        const tomorrow = new Date();
+        tomorrow.setHours(0, 0, 0, 0);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const filter = {
+            appointmentDate: { $gte: tomorrow },
+            status: { $in: ["pending", "confirmed"] },
+        };
+        if (doctorId) filter.doctor = doctorId;
+
+        const appointments = await AppointmentModel.find(filter)
+            .populate("patient", "name email phone gender bloodGroup")
+            .populate("doctor", "name specialization")
+            .sort({ appointmentDate: 1, timeSlot: 1 });
+
+        res.status(200).json({ success: true, data: appointments });
     } catch (err) {
         res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
     }

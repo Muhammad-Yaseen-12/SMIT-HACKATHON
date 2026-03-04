@@ -19,7 +19,7 @@ const DoctorAnalytics = () => {
 
     const pieData = [
         { name: 'Completed', value: stats?.completed || 0 },
-        { name: 'Pending', value: stats?.pending || 0 },
+        { name: 'Confirmed', value: stats?.confirmed || 0 },
         { name: 'Cancelled', value: stats?.cancelled || 0 },
     ];
 
@@ -30,11 +30,11 @@ const DoctorAnalytics = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon={Calendar} label="Total Appointments" value={stats?.total || 0} color="blue" />
-                <StatCard icon={CheckCircle} label="Completed" value={stats?.completed || 0} color="green" />
-                <StatCard icon={Clock} label="Pending" value={stats?.pending || 0} color="orange" />
-                <StatCard icon={FileText} label="Prescriptions" value={stats?.totalPrescriptions || 0} color="purple" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard icon={Calendar} label="Today's Appointments" value={stats?.todayAppointments ?? 0} color="blue" />
+                <StatCard icon={CheckCircle} label="Completed Total Appointments" value={stats?.completed ?? 0} color="green" />
+                <StatCard icon={Clock} label="Confirmed Appointments" value={stats?.confirmed ?? 0} color="orange" />
+                <StatCard icon={XCircle} label="Cancelled Appointments" value={stats?.cancelled ?? 0} color="red" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getDoctorAnalyticsAPI, getDoctorAppointmentsAPI } from '../../services/api';
 import StatCard from '../../components/shared/StatCard';
-import { Calendar, CheckCircle, Clock, FileText, Users } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, FileText, XCircle } from 'lucide-react';
 
 const DoctorOverview = () => {
     const [stats, setStats] = useState(null);
@@ -25,9 +25,10 @@ const DoctorOverview = () => {
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard icon={Calendar} label="Today's Appointments" value={stats?.todayAppointments ?? 0} color="blue" />
-                <StatCard icon={CheckCircle} label="Completed Total" value={stats?.completed ?? 0} color="green" />
-                <StatCard icon={Clock} label="Pending" value={stats?.pending ?? 0} color="orange" />
-                <StatCard icon={FileText} label="Prescriptions Written" value={stats?.totalPrescriptions ?? 0} color="purple" />
+                <StatCard icon={CheckCircle} label="Completed Total Appointments" value={stats?.completed ?? 0} color="green" />
+                <StatCard icon={Clock} label="Confirmed Appointments" value={stats?.confirmed ?? 0} color="orange" />
+                <StatCard icon={XCircle} label="Cancelled Appointments" value={stats?.cancelled ?? 0} color="red" />
+                {/* <StatCard icon={FileText} label="Prescriptions Written" value={stats?.totalPrescriptions ?? 0} color="purple" /> */}
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 p-6">

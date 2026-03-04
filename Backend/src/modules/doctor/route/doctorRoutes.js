@@ -4,13 +4,14 @@ import authorizeRoles from "../../../middlewares/authorizeRoles.js";
 import {
     getDoctorAppointments, getPatientHistory, addDiagnosis,
     writePrescription, getDoctorPrescriptions, aiDiagnosisAssist,
-    getDoctorAnalytics, updateAppointmentStatus,
+    getDoctorAnalytics, updateAppointmentStatus, getDoctorUpcomingAppointments,
 } from "../controllers/doctorController.js";
 
 const router = Router();
 const protect = [tokenVerification, authorizeRoles("doctor")];
 
 router.get("/doctor/appointments", ...protect, getDoctorAppointments);
+router.get("/doctor/upcoming", ...protect, getDoctorUpcomingAppointments);
 router.get("/doctor/patients/:patientId/history", ...protect, getPatientHistory);
 router.post("/doctor/diagnosis", ...protect, addDiagnosis);
 router.post("/doctor/prescriptions", ...protect, writePrescription);

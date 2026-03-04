@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
     LayoutDashboard, Users, Calendar, FileText, Brain,
-    BarChart2, LogOut, Menu, X, UserPlus, Stethoscope, ClipboardList, User,
-    CreditCard, Activity
+    BarChart2, LogOut, X, UserPlus, Stethoscope, ClipboardList, User,
+    CreditCard, Activity, CalendarClock
 } from 'lucide-react';
 
 const roleMenus = {
@@ -20,7 +20,9 @@ const roleMenus = {
     ],
     doctor: [
         { to: '/doctor', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/doctor/appointments', icon: Calendar, label: 'Appointments' },
+        { to: '/doctor/all-appointments', icon: ClipboardList, label: 'All Appointments' },
+        { to: '/doctor/appointments', icon: Calendar, label: 'Today\'s Appointments' },
+        { to: '/doctor/upcoming', icon: CalendarClock, label: 'Upcoming Appointments' },
         { to: '/doctor/prescriptions', icon: FileText, label: 'Prescriptions' },
         { to: '/doctor/ai-assist', icon: Brain, label: 'AI Diagnosis' },
         { to: '/doctor/analytics', icon: BarChart2, label: 'My Analytics' },
@@ -29,7 +31,9 @@ const roleMenus = {
         { to: '/receptionist', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/receptionist/register-patient', icon: UserPlus, label: 'Register Patient' },
         { to: '/receptionist/book-appointment', icon: Calendar, label: 'Book Appointment' },
-        { to: '/receptionist/schedule', icon: ClipboardList, label: 'Daily Schedule' },
+        { to: '/receptionist/schedule', icon: Calendar, label: 'Today\'s Appointments' },
+        { to: '/receptionist/all-appointments', icon: ClipboardList, label: 'All Appointments' },
+        { to: '/receptionist/upcoming', icon: CalendarClock, label: 'Upcoming Appointments' },
         { to: '/receptionist/patients', icon: Users, label: 'Patients' },
     ],
     patient: [
@@ -47,10 +51,9 @@ const roleBadgeColors = {
     patient: 'bg-green-100 text-green-700',
 };
 
-const Sidebar = () => {
+const Sidebar = ({ open, setOpen }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
-    const [open, setOpen] = useState(false);
 
     const menu = roleMenus[user?.role] || [];
 
@@ -62,13 +65,6 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Mobile toggle */}
-            <button
-                className="fixed top-4 left-4 z-50 lg:hidden bg-white p-2 rounded-lg shadow-md text-slate-700"
-                onClick={() => setOpen(!open)}
-            >
-                {open ? <X size={22} /> : <Menu size={22} />}
-            </button>
 
             {/* Overlay */}
             {open && (
@@ -81,14 +77,23 @@ const Sidebar = () => {
 
                 {/* Logo */}
                 <div className="p-5 border-b border-slate-100">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <Stethoscope size={18} className="text-white" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <Stethoscope size={18} className="text-white" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-slate-800 text-sm leading-tight">AI Clinic</p>
+                                <p className="text-xs text-slate-500">Management System</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="font-bold text-slate-800 text-sm leading-tight">AI Clinic</p>
-                            <p className="text-xs text-slate-500">Management System</p>
-                        </div>
+                        {/* Close button for mobile */}
+                        <button
+                            className="lg:hidden p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+                            onClick={() => setOpen(false)}
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
                 </div>
 

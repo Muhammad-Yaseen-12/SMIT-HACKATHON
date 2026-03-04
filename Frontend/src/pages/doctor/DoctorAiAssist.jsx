@@ -57,18 +57,18 @@ const DoctorAiAssist = () => {
 
     return (
         <div className="max-w-4xl space-y-6">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
-                <div className="flex items-center gap-3 mb-2">
-                    <Brain size={28} />
-                    <h2 className="text-xl font-bold">AI Diagnosis Assistant</h2>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-4 sm:p-6 text-white">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <Brain size={24} className="sm:w-7 sm:h-7 shrink-0" />
+                    <h2 className="text-lg sm:text-xl font-bold">AI Diagnosis Assistant</h2>
                 </div>
-                <p className="text-blue-100 text-sm">Powered by Google Gemini AI. Enter patient symptoms for intelligent diagnostic support.</p>
+                <p className="text-blue-100 text-xs sm:text-sm">Powered by Google Gemini AI. Enter patient symptoms for intelligent diagnostic support.</p>
                 <p className="text-blue-200 text-xs mt-2 font-medium">⚠️ For clinical reference only. Always apply professional medical judgment.</p>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
-                <h3 className="font-semibold text-slate-800">Patient Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 space-y-4 sm:space-y-5">
+                <h3 className="font-semibold text-slate-800 text-sm sm:text-base">Patient Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Patient Age</label>
                         <input type="number" placeholder="e.g. 35" value={patientAge} onChange={e => setPatientAge(e.target.value)}
@@ -84,7 +84,7 @@ const DoctorAiAssist = () => {
                             <option value="other">Other</option>
                         </select>
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                         <label className="block text-xs font-medium text-slate-600 mb-1">Medical History</label>
                         <input type="text" placeholder="Diabetes, hypertension, previous surgeries..." value={medicalHistory} onChange={e => setMedicalHistory(e.target.value)}
                             className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
@@ -93,7 +93,7 @@ const DoctorAiAssist = () => {
 
                 <div>
                     <label className="block text-xs font-medium text-slate-600 mb-2">Current Symptoms *</label>
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-3">
                         <input
                             type="text" placeholder="Type symptom and press Enter or Add"
                             value={symptomInput}
@@ -102,7 +102,7 @@ const DoctorAiAssist = () => {
                             className="flex-1 px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button type="button" onClick={addSymptom}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center gap-1">
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1">
                             <Plus size={16} /> Add
                         </button>
                     </div>
@@ -119,11 +119,11 @@ const DoctorAiAssist = () => {
                 </div>
 
                 <button onClick={handleAnalyze} disabled={loading || symptoms.length === 0}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white font-semibold py-2.5 sm:py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm sm:text-base">
                     {loading ? (
-                        <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Analyzing with AI...</>
+                        <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> <span className="hidden sm:inline">Analyzing with AI...</span><span className="sm:hidden">Analyzing...</span></>
                     ) : (
-                        <><Zap size={18} /> Analyze Symptoms with AI</>
+                        <><Zap size={18} /> <span className="hidden sm:inline">Analyze Symptoms with AI</span><span className="sm:hidden">Analyze</span></>
                     )}
                 </button>
             </div>
@@ -142,19 +142,19 @@ const DoctorAiAssist = () => {
             {result && (
                 <div className="space-y-4">
                     {result.diagnoses && (
-                        <div className="bg-white rounded-xl border border-slate-200 p-6">
-                            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                                <Brain size={18} className="text-blue-600" /> Possible Diagnoses
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6">
+                            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
+                                <Brain size={18} className="text-blue-600 shrink-0" /> Possible Diagnoses
                             </h3>
                             <div className="space-y-3">
                                 {result.diagnoses.map((d, i) => (
-                                    <div key={i} className={`border rounded-xl p-4 ${severityColors[d.likelihood?.toLowerCase()] || 'bg-slate-50 border-slate-200'}`}>
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="font-semibold">{d.condition}</p>
-                                                <p className="text-sm mt-1 opacity-80">{d.description}</p>
+                                    <div key={i} className={`border rounded-xl p-3 sm:p-4 ${severityColors[d.likelihood?.toLowerCase()] || 'bg-slate-50 border-slate-200'}`}>
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-sm sm:text-base">{d.condition}</p>
+                                                <p className="text-xs sm:text-sm mt-1 opacity-80">{d.description}</p>
                                             </div>
-                                            <span className="text-xs font-bold uppercase px-2 py-1 rounded-full border opacity-80 whitespace-nowrap">{d.likelihood}</span>
+                                            <span className="text-xs font-bold uppercase px-2 py-1 rounded-full border opacity-80 whitespace-nowrap self-start">{d.likelihood}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -164,9 +164,9 @@ const DoctorAiAssist = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {result.tests?.length > 0 && (
-                            <div className="bg-white rounded-xl border border-slate-200 p-5">
-                                <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <TestTube size={16} className="text-blue-600" /> Recommended Tests
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+                                <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
+                                    <TestTube size={16} className="text-blue-600 shrink-0" /> Recommended Tests
                                 </h4>
                                 <ul className="space-y-2">
                                     {result.tests.map((t, i) => (
@@ -179,9 +179,9 @@ const DoctorAiAssist = () => {
                         )}
 
                         {result.treatments?.length > 0 && (
-                            <div className="bg-white rounded-xl border border-slate-200 p-5">
-                                <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                                    <Pill size={16} className="text-green-600" /> Treatment Recommendations
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+                                <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2 text-sm sm:text-base">
+                                    <Pill size={16} className="text-green-600 shrink-0" /> Treatment Recommendations
                                 </h4>
                                 <ul className="space-y-2">
                                     {result.treatments.map((t, i) => (
@@ -195,9 +195,9 @@ const DoctorAiAssist = () => {
                     </div>
 
                     {result.redFlags?.length > 0 && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-                            <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
-                                <AlertTriangle size={16} /> Red Flags to Watch For
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 sm:p-5">
+                            <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2 text-sm sm:text-base">
+                                <AlertTriangle size={16} className="shrink-0" /> Red Flags to Watch For
                             </h4>
                             <ul className="space-y-2">
                                 {result.redFlags.map((f, i) => (
@@ -210,9 +210,9 @@ const DoctorAiAssist = () => {
                     )}
 
                     {result.raw && (
-                        <div className="bg-white rounded-xl border border-slate-200 p-5">
-                            <h4 className="font-semibold text-slate-800 mb-3">AI Analysis</h4>
-                            <p className="text-sm text-slate-600 whitespace-pre-wrap">{result.raw}</p>
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+                            <h4 className="font-semibold text-slate-800 mb-3 text-sm sm:text-base">AI Analysis</h4>
+                            <p className="text-xs sm:text-sm text-slate-600 whitespace-pre-wrap">{result.raw}</p>
                         </div>
                     )}
                 </div>

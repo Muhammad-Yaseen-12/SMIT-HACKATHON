@@ -57,7 +57,13 @@ const PatientPrescriptions = () => {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-sm text-slate-500">Dr. {rx.doctor?.name} · {new Date(rx.createdAt).toLocaleDateString()}</p>
+                            <p className="text-sm text-slate-700 font-medium">Dr. {rx.doctor?.name}</p>
+                            <p className="text-xs text-slate-500">
+                                {rx.doctor?.specialization && <span>{rx.doctor.specialization}</span>}
+                                {rx.doctor?.specialization && rx.doctor?.qualification && <span> · </span>}
+                                {rx.doctor?.qualification && <span>{rx.doctor.qualification}</span>}
+                                <span> · {new Date(rx.createdAt).toLocaleDateString()}</span>
+                            </p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
@@ -74,6 +80,15 @@ const PatientPrescriptions = () => {
                     {/* Expanded */}
                     {expanded === rx._id && (
                         <div className="border-t border-slate-100 p-4 space-y-4 bg-slate-50">
+                            {/* Doctor Details */}
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                                <h5 className="text-xs font-semibold text-blue-700 uppercase mb-1">Prescribed By</h5>
+                                <p className="font-semibold text-blue-900">Dr. {rx.doctor?.name}</p>
+                                <p className="text-xs text-blue-600 mt-0.5">
+                                    {rx.doctor?.specialization || 'General Physician'}
+                                    {rx.doctor?.qualification && ` · ${rx.doctor.qualification}`}
+                                </p>
+                            </div>
                             {/* Medications */}
                             {rx.medications?.length > 0 && (
                                 <div>

@@ -21,6 +21,7 @@ export const getDoctorAppointments = async (req, res) => {
         }
         const appointments = await AppointmentModel.find(filter)
             .populate("patient", "name email phone gender bloodGroup profileImageUrl dateOfBirth")
+            .populate("cancelledBy", "name role")
             .sort({ appointmentDate: 1, timeSlot: 1 });
         res.status(200).json({ success: true, data: appointments });
     } catch (err) {
@@ -81,11 +82,13 @@ export const writePrescription = async (req, res) => {
         if (isAiEnabled && process.env.GEMINI_API_KEY) {
             try {
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const prompt = `You are a friendly medical explainer. A doctor diagnosed a patient with "${diagnosis}" and prescribed these medications: ${medications?.map(m => `${m.name} ${m.dosage} ${m.frequency} for ${m.duration}`).join(", ")}. 
                 Write a simple, reassuring explanation in 2-3 sentences that a non-medical patient can easily understand. Include what the condition is and how the medicines help.`;
+                console.log('[AI] Generating patient explanation...');
                 const result = await model.generateContent(prompt);
                 aiExplanation = result.response.text();
+                console.log('[AI] Patient explanation generated successfully');
             } catch (aiErr) {
                 console.error("AI explanation failed:", aiErr.message);
             }
@@ -163,7 +166,7 @@ const buildFallbackDiagnosis = (symptoms) => ({
 // ── Gemini call with retry + JSON extraction ──────────────────────────────────
 const callGeminiDiagnosis = async (symptoms, patientAge, patientGender, medicalHistory) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are an AI medical assistant helping a qualified doctor (not a patient).
 Patient info: Age: ${patientAge || "unknown"}, Gender: ${patientGender || "unknown"}.
@@ -180,8 +183,10 @@ IMPORTANT: This is for a qualified doctor's reference only.
 Respond ONLY with valid JSON. No markdown, no explanation outside JSON.
 Format: { "diagnoses": [{"condition": "", "likelihood": "high|medium|low", "description": ""}], "tests": [], "treatments": [], "redFlags": [] }`;
 
+    console.log('[AI] Calling Gemini API for diagnosis assistance...');
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
+    console.log('[AI] Received response from Gemini');
 
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -211,10 +216,13 @@ export const aiDiagnosisAssist = async (req, res) => {
 
         // ── Try Gemini; fall back gracefully on any error ─────────────────────
         try {
+            console.log('[AI] Starting diagnosis analysis...');
             const aiData = await callGeminiDiagnosis(symptoms, patientAge, patientGender, medicalHistory);
+            console.log('[AI] Diagnosis analysis successful');
             return res.status(200).json({ success: true, data: aiData });
         } catch (aiErr) {
             console.error("[AI] Gemini diagnosis failed:", aiErr.message);
+            console.error("[AI] Error details:", aiErr);
 
             // Classify the error for a meaningful warning message
             // Check numeric HTTP status FIRST (before scanning message text),
@@ -252,10 +260,11 @@ export const aiDiagnosisAssist = async (req, res) => {
 export const getDoctorAnalytics = async (req, res) => {
     try {
         const doctorId = req.user.id;
-        const [total, completed, pending, cancelled, totalPrescriptions, todayAppointments] = await Promise.all([
+        const [total, completed, pending, confirmed, cancelled, totalPrescriptions, todayAppointments] = await Promise.all([
             AppointmentModel.countDocuments({ doctor: doctorId }),
             AppointmentModel.countDocuments({ doctor: doctorId, status: "completed" }),
             AppointmentModel.countDocuments({ doctor: doctorId, status: "pending" }),
+            AppointmentModel.countDocuments({ doctor: doctorId, status: "confirmed" }),
             AppointmentModel.countDocuments({ doctor: doctorId, status: "cancelled" }),
             PrescriptionModel.countDocuments({ doctor: doctorId }),
             AppointmentModel.countDocuments({
@@ -280,7 +289,7 @@ export const getDoctorAnalytics = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            data: { total, completed, pending, cancelled, totalPrescriptions, todayAppointments, weeklyData },
+            data: { total, completed, pending, confirmed, cancelled, totalPrescriptions, todayAppointments, weeklyData },
         });
     } catch (err) {
         res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
@@ -292,13 +301,48 @@ export const updateAppointmentStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { status, notes } = req.body;
+
+        const updateData = { status, notes };
+
+        // Track who cancelled the appointment
+        if (status === "cancelled") {
+            updateData.cancelledBy = req.user.id;
+            updateData.cancelledByRole = req.user.role;
+        }
+
         const appointment = await AppointmentModel.findOneAndUpdate(
             { _id: id, doctor: req.user.id },
-            { status, notes },
+            updateData,
             { new: true }
-        ).populate("patient", "name email phone");
+        ).populate("patient", "name email phone")
+            .populate("cancelledBy", "name role");
+
         if (!appointment) return res.status(404).json({ success: false, message: "Appointment not found" });
         res.status(200).json({ success: true, data: appointment });
+    } catch (err) {
+        res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
+    }
+};
+
+// Get upcoming appointments (all future appointments)
+export const getDoctorUpcomingAppointments = async (req, res) => {
+    try {
+        const tomorrow = new Date();
+        tomorrow.setHours(0, 0, 0, 0);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const filter = {
+            doctor: req.user.id,
+            appointmentDate: { $gte: tomorrow },
+            status: { $in: ["pending", "confirmed"] },
+        };
+
+        const appointments = await AppointmentModel.find(filter)
+            .populate("patient", "name email phone gender bloodGroup profileImageUrl")
+            .populate("cancelledBy", "name role")
+            .sort({ appointmentDate: 1, timeSlot: 1 });
+
+        res.status(200).json({ success: true, data: appointments });
     } catch (err) {
         res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
     }

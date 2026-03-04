@@ -19,6 +19,7 @@ export const getPatientAppointments = async (req, res) => {
     try {
         const appointments = await AppointmentModel.find({ patient: req.user.id })
             .populate("doctor", "name specialization profileImageUrl consultationFee")
+            .populate("cancelledBy", "name role")
             .sort({ appointmentDate: -1 });
         res.status(200).json({ success: true, data: appointments });
     } catch (err) {
@@ -63,106 +64,170 @@ export const downloadPrescriptionPDF = async (req, res) => {
 
         if (!prescription) return res.status(404).json({ success: false, message: "Prescription not found" });
 
-        const doc = new PDFDocument({ margin: 50, size: "A4" });
+        const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `attachment; filename=prescription-${id}.pdf`);
         doc.pipe(res);
 
-        // Header
-        doc.rect(0, 0, doc.page.width, 80).fill("#1d4ed8");
-        doc.fontSize(22).fillColor("white").font("Helvetica-Bold")
-            .text("AI Clinic Management System", 50, 20, { align: "center" });
-        doc.fontSize(11).fillColor("white").font("Helvetica")
-            .text("Medical Prescription", 50, 50, { align: "center" });
+        const pageWidth = doc.page.width;
+        const pageHeight = doc.page.height;
+        const margin = 50;
+        const contentWidth = pageWidth - (margin * 2);
+        const footerHeight = 50;
+        const maxY = pageHeight - footerHeight - 20;
 
-        doc.moveDown(3);
-        doc.fillColor("#1e293b");
+        // Header
+        doc.rect(0, 0, pageWidth, 80).fill("#1d4ed8");
+        doc.fontSize(22).fillColor("white").font("Helvetica-Bold")
+            .text("AI Clinic Management System", 0, 20, { width: pageWidth, align: "center" });
+        doc.fontSize(11).fillColor("white").font("Helvetica")
+            .text("Medical Prescription", 0, 50, { width: pageWidth, align: "center" });
+
+        let y = 100;
 
         // Doctor info
-        doc.fontSize(13).font("Helvetica-Bold").text("Prescribing Doctor", 50, 100);
+        doc.fontSize(13).font("Helvetica-Bold").fillColor("#1e293b")
+            .text("Prescribing Doctor", margin, y);
+        y += 20;
         doc.fontSize(11).font("Helvetica").fillColor("#374151")
-            .text(`Dr. ${prescription.doctor.name}`, 50, 120)
-            .text(`Specialization: ${prescription.doctor.specialization || "General Physician"}`, 50, 138)
-            .text(`Qualification: ${prescription.doctor.qualification || "MBBS"}`, 50, 156);
+            .text(`Dr. ${prescription.doctor.name}`, margin, y);
+        y += 16;
+        doc.text(`Specialization: ${prescription.doctor.specialization || "General Physician"}`, margin, y);
+        y += 16;
+        doc.text(`Qualification: ${prescription.doctor.qualification || "MBBS"}`, margin, y);
+        y += 25;
 
         // Patient info box
-        doc.rect(50, 180, doc.page.width - 100, 80).stroke("#cbd5e1").fillColor("#f8fafc").strokeColor("#cbd5e1");
-        doc.rect(50, 180, doc.page.width - 100, 80).fill("#f8fafc");
-        doc.fillColor("#1e293b").fontSize(12).font("Helvetica-Bold").text("Patient Information", 60, 190);
+        const patientBoxHeight = 70;
+        doc.rect(margin, y, contentWidth, patientBoxHeight).fillAndStroke("#f8fafc", "#cbd5e1");
+        doc.fillColor("#1e293b").fontSize(12).font("Helvetica-Bold")
+            .text("Patient Information", margin + 10, y + 10);
+        y += 28;
         doc.fontSize(10).font("Helvetica").fillColor("#374151")
-            .text(`Name: ${prescription.patient.name}`, 60, 208)
-            .text(`Gender: ${prescription.patient.gender || "N/A"}`, 60, 222)
-            .text(`Blood Group: ${prescription.patient.bloodGroup || "N/A"}`, 300, 208)
-            .text(`Date: ${new Date(prescription.createdAt).toLocaleDateString()}`, 300, 222);
+            .text(`Name: ${prescription.patient.name}`, margin + 10, y)
+            .text(`Blood: ${prescription.patient.bloodGroup || "N/A"}`, margin + contentWidth - 150, y);
+        y += 16;
+        doc.text(`Gender: ${prescription.patient.gender || "N/A"}`, margin + 10, y)
+            .text(`Date: ${new Date(prescription.createdAt).toLocaleDateString()}`, margin + contentWidth - 150, y);
+        y += 35;
 
         // Diagnosis
-        doc.moveDown();
-        doc.fillColor("#1e293b").fontSize(13).font("Helvetica-Bold").text("Diagnosis", 50, 280);
-        doc.fontSize(11).font("Helvetica").fillColor("#374151").text(prescription.diagnosis, 50, 300);
+        doc.fillColor("#1e293b").fontSize(13).font("Helvetica-Bold")
+            .text("Diagnosis", margin, y);
+        y += 18;
+        doc.fontSize(11).font("Helvetica").fillColor("#374151")
+            .text(prescription.diagnosis, margin, y, { width: contentWidth });
+        y += 25;
 
         // Symptoms
         if (prescription.symptoms?.length > 0) {
-            doc.fontSize(13).font("Helvetica-Bold").fillColor("#1e293b").text("Symptoms", 50, 330);
+            doc.fontSize(13).font("Helvetica-Bold").fillColor("#1e293b")
+                .text("Symptoms", margin, y);
+            y += 18;
             doc.fontSize(11).font("Helvetica").fillColor("#374151")
-                .text(prescription.symptoms.join(", "), 50, 350);
+                .text(prescription.symptoms.join(", "), margin, y, { width: contentWidth });
+            y += 25;
         }
 
         // Medications
-        let y = 390;
         if (prescription.medications?.length > 0) {
-            doc.fontSize(13).font("Helvetica-Bold").fillColor("#1e293b").text("Medications", 50, y);
+            doc.fontSize(13).font("Helvetica-Bold").fillColor("#1e293b")
+                .text("Medications", margin, y);
             y += 20;
-            doc.rect(50, y, doc.page.width - 100, 22).fill("#1d4ed8");
-            doc.fontSize(10).font("Helvetica-Bold").fillColor("white")
-                .text("Medicine", 60, y + 6)
-                .text("Dosage", 200, y + 6)
-                .text("Frequency", 300, y + 6)
-                .text("Duration", 420, y + 6);
-            y += 22;
+
+            const headerHeight = 24;
+            const rowHeight = 22;
+
+            doc.rect(margin, y, contentWidth, headerHeight).fill("#1d4ed8");
+            doc.fontSize(9).font("Helvetica-Bold").fillColor("white")
+                .text("Medicine", margin + 8, y + 7, { width: 130 })
+                .text("Dosage", margin + 143, y + 7, { width: 85 })
+                .text("Frequency", margin + 233, y + 7, { width: 100 })
+                .text("Duration", margin + 338, y + 7, { width: 80 });
+            y += headerHeight;
+
             prescription.medications.forEach((med, i) => {
-                if (i % 2 === 0) doc.rect(50, y, doc.page.width - 100, 20).fill("#f1f5f9");
-                doc.fontSize(10).font("Helvetica").fillColor("#374151")
-                    .text(med.name, 60, y + 4)
-                    .text(med.dosage, 200, y + 4)
-                    .text(med.frequency, 300, y + 4)
-                    .text(med.duration, 420, y + 4);
-                y += 20;
+                const bgColor = i % 2 === 0 ? "#f8fafc" : "#ffffff";
+                doc.rect(margin, y, contentWidth, rowHeight).fill(bgColor);
+                doc.fontSize(9).font("Helvetica").fillColor("#374151")
+                    .text(med.name || "", margin + 8, y + 6, { width: 130, lineBreak: false, ellipsis: true })
+                    .text(med.dosage || "", margin + 143, y + 6, { width: 85, lineBreak: false })
+                    .text(med.frequency || "", margin + 233, y + 6, { width: 100, lineBreak: false })
+                    .text(med.duration || "", margin + 338, y + 6, { width: 80, lineBreak: false });
+                y += rowHeight;
             });
+            y += 20;
         }
 
-        y += 15;
         // Advice
         if (prescription.advice) {
-            doc.fontSize(12).font("Helvetica-Bold").fillColor("#1e293b").text("Advice / Instructions", 50, y);
+            doc.fontSize(12).font("Helvetica-Bold").fillColor("#1e293b")
+                .text("Advice / Instructions", margin, y);
             y += 18;
-            doc.fontSize(10).font("Helvetica").fillColor("#374151").text(prescription.advice, 50, y, { width: doc.page.width - 100 });
-            y += 40;
+            const adviceHeight = doc.heightOfString(prescription.advice, { width: contentWidth, lineGap: 2 });
+            doc.fontSize(10).font("Helvetica").fillColor("#374151")
+                .text(prescription.advice, margin, y, { width: contentWidth, lineGap: 2 });
+            y += Math.min(adviceHeight, 80) + 15;
         }
 
         // AI Explanation
         if (prescription.isAiEnabled && prescription.aiExplanation) {
-            doc.rect(50, y, doc.page.width - 100, 8).fill("#dbeafe");
-            y += 8;
-            doc.rect(50, y, doc.page.width - 100, 60).fill("#eff6ff");
-            doc.fontSize(11).font("Helvetica-Bold").fillColor("#1d4ed8").text("AI Explanation for Patient", 60, y + 8);
-            doc.fontSize(10).font("Helvetica").fillColor("#374151").text(prescription.aiExplanation, 60, y + 24, { width: doc.page.width - 120 });
-            y += 70;
+            const aiTextHeight = doc.heightOfString(prescription.aiExplanation, { width: contentWidth - 20, lineGap: 2 });
+            const aiBoxHeight = Math.min(aiTextHeight + 35, 100);
+
+            doc.rect(margin, y, contentWidth, 5).fill("#dbeafe");
+            y += 5;
+            doc.rect(margin, y, contentWidth, aiBoxHeight).fill("#eff6ff");
+            doc.fontSize(10).font("Helvetica-Bold").fillColor("#1d4ed8")
+                .text("AI Explanation for Patient", margin + 10, y + 8);
+            y += 24;
+            doc.fontSize(9).font("Helvetica").fillColor("#374151")
+                .text(prescription.aiExplanation, margin + 10, y, { width: contentWidth - 20, lineGap: 2 });
+            y += Math.min(aiTextHeight, 70) + 12;
         }
 
         // Follow-up
         if (prescription.followUpDate) {
+            y += 10;
             doc.fontSize(11).font("Helvetica-Bold").fillColor("#dc2626")
-                .text(`Follow-up Date: ${new Date(prescription.followUpDate).toLocaleDateString()}`, 50, y);
+                .text(`Follow-up Date: ${new Date(prescription.followUpDate).toLocaleDateString()}`, margin, y);
         }
 
-        // Footer
-        doc.rect(0, doc.page.height - 50, doc.page.width, 50).fill("#1d4ed8");
-        doc.fontSize(9).fillColor("white").font("Helvetica")
-            .text("This prescription is generated digitally. Always consult your doctor for medical advice.", 50, doc.page.height - 30, { align: "center" });
+        // Footer - only on the last page
+        const range = doc.bufferedPageRange();
+        for (let i = range.start; i < range.start + range.count; i++) {
+            doc.switchToPage(i);
+            doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight).fill("#1d4ed8");
+            doc.fontSize(9).fillColor("white").font("Helvetica")
+                .text("This prescription is generated digitally. Always consult your doctor for medical advice.",
+                    0, pageHeight - 30, { width: pageWidth, align: "center" });
+        }
 
         doc.end();
     } catch (err) {
         console.error("PDF Error:", err);
+        res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
+    }
+};
+
+// Cancel appointment
+export const cancelPatientAppointment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const appointment = await AppointmentModel.findOneAndUpdate(
+            { _id: id, patient: req.user.id },
+            {
+                status: "cancelled",
+                cancelledBy: req.user.id,
+                cancelledByRole: req.user.role
+            },
+            { new: true }
+        ).populate("doctor", "name specialization")
+            .populate("cancelledBy", "name role");
+
+        if (!appointment) return res.status(404).json({ success: false, message: "Appointment not found" });
+        res.status(200).json({ success: true, message: "Appointment cancelled", data: appointment });
+    } catch (err) {
         res.status(500).json({ success: false, message: INTERNAL_SERVER_ERROR_MESSAGE });
     }
 };

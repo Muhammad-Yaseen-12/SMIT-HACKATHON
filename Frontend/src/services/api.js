@@ -1,7 +1,4 @@
 import axios from 'axios';
-
-// In development the Vite proxy forwards /api → http://localhost:8080
-// In production set VITE_API_URL to your deployed backend URL
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL || '/api',
     withCredentials: true,
@@ -58,6 +55,7 @@ export const getSystemUsageAPI = () => API.get('/admin/system-usage');
 
 // Doctor
 export const getDoctorAppointmentsAPI = (params) => API.get('/doctor/appointments', { params });
+export const getDoctorUpcomingAppointmentsAPI = () => API.get('/doctor/upcoming');
 export const getPatientHistoryAPI = (patientId) => API.get(`/doctor/patients/${patientId}/history`);
 export const addDiagnosisAPI = (data) => API.post('/doctor/diagnosis', data);
 export const writePrescriptionAPI = (data) => API.post('/doctor/prescriptions', data);
@@ -71,7 +69,9 @@ export const registerPatientAPI = (data) => API.post('/receptionist/patients', d
 export const searchPatientsAPI = (q) => API.get(`/receptionist/patients/search?q=${q}`);
 export const updatePatientAPI = (id, data) => API.patch(`/receptionist/patients/${id}`, data);
 export const bookAppointmentAPI = (data) => API.post('/receptionist/appointments', data);
+export const getAllAppointmentsAPI = (params) => API.get('/receptionist/appointments', { params });
 export const getDailyScheduleAPI = (params) => API.get('/receptionist/schedule', { params });
+export const getUpcomingAppointmentsAPI = (params) => API.get('/receptionist/upcoming', { params });
 export const cancelAppointmentAPI = (id) => API.patch(`/receptionist/appointments/${id}/cancel`);
 export const getAvailableDoctorsAPI = () => API.get('/receptionist/doctors');
 
@@ -79,6 +79,7 @@ export const getAvailableDoctorsAPI = () => API.get('/receptionist/doctors');
 export const getPatientProfileAPI = () => API.get('/patient/profile');
 export const updatePatientProfileAPI = (data) => API.patch('/patient/profile', data);
 export const getPatientAppointmentsAPI = () => API.get('/patient/appointments');
+export const cancelPatientAppointmentAPI = (id) => API.patch(`/patient/appointments/${id}/cancel`);
 export const getPatientPrescriptionsAPI = () => API.get('/patient/prescriptions');
 export const downloadPrescriptionAPI = (id) =>
     API.get(`/patient/prescriptions/${id}/download`, { responseType: 'blob' });
