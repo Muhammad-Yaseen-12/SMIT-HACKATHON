@@ -12,7 +12,7 @@ const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://aiclinicmanagementsystem.netlify.app/',
+    'https://aiclinicmanagementsystem.netlify.app',
 ].filter(Boolean);
 
 app.use(cors({
@@ -25,7 +25,14 @@ app.use(cors({
     },
     credentials: true,
 }));
-app.use(helmet());
+app.use(helmet({
+    // Allow cross-origin requests for a public REST API
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Disable COEP — not needed for APIs and can break browser clients
+    crossOriginEmbedderPolicy: false,
+    // Relax CSP for API responses (no HTML served)
+    contentSecurityPolicy: false,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(ENV.COOKIE_SECRET));
